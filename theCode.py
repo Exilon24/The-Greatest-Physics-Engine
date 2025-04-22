@@ -66,9 +66,12 @@ ball1.color = "red"
 
 balls = [ball1]
 
-for i in range(6):
-    balls.append(Ball())
-    balls[i].positionX = random.randrange(turtle.window_width() / -2 + 50, turtle.window_width() / 2 + 50)
+colors = ["red", "yellow", "orange"]
+
+for i in range(600):
+    currentBallIDK = Ball()
+    currentBallIDK.color = colors[random.randint(0, len(colors) - 1)]
+    balls.append(currentBallIDK)
 
 def distance(a, b):
     distanceX = abs(a.positionX - b.positionX)
@@ -84,29 +87,54 @@ def direction(x, y):
     y /= magnitude
     return x, y
 
+# Fuck you
 def HandleCollision(a, b):
-    distanceX = a.positionX - b.positionX
-    distanceY = a.positionY - b.positionY
+    dx = a.positionX - b.positionX
+    dy = a.positionY - b.positionY
+    dist = math.hypot(dx, dy)
 
-    dirX, dirY = direction(distanceX, distanceY)
-    magnA, magnB = math.sqrt(a.velocityX * a.velocityX + a.velocityY * a.velocityY), math.sqrt(b.velocityX * b.velocityX + b.velocityY * b.velocityY)
+    if dist == 0:
+        return  # Avoid division by zero
 
-    overlap = (40 + 0.5) - distance(a, b)
+    # Normal vector
+    nx = dx / dist
+    ny = dy / dist
+
+    # Relative velocity
+    rvx = a.velocityX - b.velocityX
+    rvy = a.velocityY - b.velocityY
+
+    # Relative velocity along the normal
+    velAlongNormal = rvx * nx + rvy * ny
+
+    # Skip if velocities are separating
+    if velAlongNormal > 0:
+        return
+
+    # Coefficient of restitution (bounciness)
+    e = 0.6  # lower means less bouncy
+
+    # Calculate impulse scalar
+    j = -(1 + e) * velAlongNormal
+    j /= 2  # equal mass
+
+    # Apply impulse
+    impulseX = j * nx
+    impulseY = j * ny
+
+    a.velocityX += impulseX
+    a.velocityY += impulseY
+    b.velocityX -= impulseX
+    b.velocityY -= impulseY
+
+    # Positional correction
+    overlap = 40 - dist
     if overlap > 0:
-        dirX, dirY = direction(a.positionX - b.positionX, a.positionY - b.positionY)
-        correction = overlap / 2  # split the push between both balls
-
-        a.positionX += dirX * correction
-        a.positionY += dirY * correction
-
-        b.positionX -= dirX * correction
-        b.positionY -= dirY * correction
-
-    a.velocityX = dirX * a.dampening * magnB * 0.8
-    a.velocityY = dirY * a.dampening * magnB * 0.8
-
-    b.velocityX = -dirX * a.dampening * magnA * 0.8
-    b.velocityY = -dirY * a.dampening * magnA * 0.8
+        correction = overlap / 2
+        a.positionX += nx * correction
+        a.positionY += ny * correction
+        b.positionX -= nx * correction
+        b.positionY -= ny * correction
 
 def checkCollision(a, b):
     if (distance(a, b) < 40):
@@ -125,8 +153,6 @@ def click(x, y):
     main_ball.velocityY = dirY * speed
 
 def gameLoop():
-
-
     for i, FirstBall in enumerate(balls):
         for j in range(i + 1, len(balls)):
             SecondBall = balls[j]
@@ -135,8 +161,8 @@ def gameLoop():
 
         FirstBall.Update()
         FirstBall.Draw()
-        #FirstBall.accelX = (random.random() - 0.5) * 2
-        #FirstBall.accelY = (random.random() - 0.5) * 2
+        FirstBall.accelX = (random.random() - 0.5) * 2
+        FirstBall.accelY = (random.random() - 0.5) * 2
 
     screen.update()
     screen.ontimer(gameLoop, 15)
